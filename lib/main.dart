@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'database_handler.dart';
+import 'note.dart';
 
 void main() {
   runApp(const MySimpleNoteApp());
@@ -27,27 +29,44 @@ class MyNotesPage extends StatefulWidget {
 }
 
 class _MyNotesPageState extends State<MyNotesPage> {
-  final List<String> _notes = [];
   final TextEditingController _controller = TextEditingController();
+  late DatabaseHandler handler;
+  List<Note> _notes = [];
 
-  void _addNote() {
+  @override
+  void initState() {
+    super.initState();
+    handler = DatabaseHandler();
+    _refreshNotes();
+  }
+
+  Future<void> _refreshNotes() async {
+    final notes = await handler.retrieveNotes();
+    setState(() {
+      _notes = notes;
+    });
+  }
+
+  void _addNote() async {
     if (_controller.text.isNotEmpty) {
-      setState(() {
-        _notes.add(_controller.text);
-      });
+      Note newNote = Note(
+        title: 'Note ${_notes.length + 1}',
+        text: _controller.text,
+      );
+      await handler.insertNote([newNote]);
       _controller.clear();
+      _refreshNotes();
     }
   }
 
-  void _editNote(int index) {
-    _controller.text = _notes[index];
-    _deleteNote(index);
+  void _editNote(int index) async {
+    _controller.text = _notes[index].text;
+    await _deleteNote(index);
   }
 
-  void _deleteNote(int index) {
-    setState(() {
-      _notes.removeAt(index);
-    });
+  Future<void> _deleteNote(int index) async {
+    await handler.deleteNote(_notes[index].id!);
+    _refreshNotes();
   }
 
   void _viewNoteDetails(int index) {
@@ -56,7 +75,7 @@ class _MyNotesPageState extends State<MyNotesPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('View Note'),
-          content: Text(_notes[index]),
+          content: Text(_notes[index].text),
           actions: [
             TextButton(
               onPressed: () {
@@ -74,20 +93,78 @@ class _MyNotesPageState extends State<MyNotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MySimpleNote'),
+        title: const Text('My Simple Note'),
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.green[300],
       ),
       body: Column(
         children: [
-          Padding(
+          Expanded(
+            child: FutureBuilder(
+              future: handler.retrieveNotes(),
+              builder:
+                  (BuildContext context, AsyncSnapshot<List<Note>> snapshot) {
+                if (snapshot.connectionState == ConnectionState.done) {
+                  if (snapshot.hasData) {
+                    _notes = snapshot.data!;
+                    return ListView.builder(
+                      itemCount: _notes.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Card(
+                          child: ListTile(
+                            title: Text(_notes[index].title),
+                            subtitle: Text(_notes[index].text),
+                            onTap: () => _viewNoteDetails(index),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () => _editNote(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () => _deleteNote(index),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  } else {
+                    return const Center(child: Text('No notes available.'));
+                  }
+                } else {
+                  return const Center(child: CircularProgressIndicator());
+                }
+              },
+            ),
+          ),
+          Container(
             padding: const EdgeInsets.all(8.0),
+            color: Colors.green[300],
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _controller,
+                    cursorColor: Colors.white,
+                    style: const TextStyle(
+                      color: Colors.black,
+                    ),
                     decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.green),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.green),
+                      ),
                       labelText: 'Enter your note...',
+                      labelStyle: TextStyle(color: Colors.white),
                     ),
                   ),
                 ),
@@ -96,40 +173,18 @@ class _MyNotesPageState extends State<MyNotesPage> {
                   padding: const EdgeInsets.all(4.8),
                 ),
                 Container(
-                  color: Colors.blue, // Set background color
-                  padding:
-                      const EdgeInsets.all(3.8), // Add padding for square shape
+                  decoration: BoxDecoration(
+                    color: Colors.green[500],
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  padding: const EdgeInsets.all(3.8),
                   child: IconButton(
                     onPressed: _addNote,
                     icon: const Icon(Icons.add_circle_outline_sharp),
-                    color: Colors.white, // Icon color
+                    color: Colors.white,
                   ),
                 ),
               ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _notes.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_notes[index]),
-                  onTap: () => _viewNoteDetails(index),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _editNote(index),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _deleteNote(index),
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
           ),
         ],
