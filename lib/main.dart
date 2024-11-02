@@ -4,6 +4,7 @@ import 'note.dart';
 
 void main() {
   runApp(const MySimpleNoteApp());
+  print("App Started");
 }
 
 class MySimpleNoteApp extends StatelessWidget {
@@ -42,6 +43,7 @@ class _MyNotesPageState extends State<MyNotesPage> {
 
   Future<void> _refreshNotes() async {
     final notes = await handler.retrieveNotes();
+    print("Number of notes fetched: ${notes.length}");
     setState(() {
       _notes = notes;
     });
@@ -49,11 +51,13 @@ class _MyNotesPageState extends State<MyNotesPage> {
 
   void _addNote() async {
     if (_controller.text.isNotEmpty) {
+      print("Adding note: ${_controller.text}");
       Note newNote = Note(
         title: 'Note ${_notes.length + 1}',
         text: _controller.text,
       );
-      await handler.insertNote([newNote]);
+      int result = await handler.insertNote([newNote]);
+      print("Number of notes inserted: $result");
       _controller.clear();
       _refreshNotes();
     }
@@ -100,46 +104,33 @@ class _MyNotesPageState extends State<MyNotesPage> {
       body: Column(
         children: [
           Expanded(
-            child: FutureBuilder(
-              future: handler.retrieveNotes(),
-              builder:
-                  (BuildContext context, AsyncSnapshot<List<Note>> snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  if (snapshot.hasData) {
-                    _notes = snapshot.data!;
-                    return ListView.builder(
-                      itemCount: _notes.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Card(
-                          child: ListTile(
-                            title: Text(_notes[index].title),
-                            subtitle: Text(_notes[index].text),
-                            onTap: () => _viewNoteDetails(index),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _editNote(index),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => _deleteNote(index),
-                                ),
-                              ],
-                            ),
+            child: _notes.isNotEmpty
+                ? ListView.builder(
+                    itemCount: _notes.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return Card(
+                        child: ListTile(
+                          title: Text(_notes[index].title),
+                          subtitle: Text(_notes[index].text),
+                          onTap: () => _viewNoteDetails(index),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _editNote(index),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () => _deleteNote(index),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    );
-                  } else {
-                    return const Center(child: Text('No notes available.'));
-                  }
-                } else {
-                  return const Center(child: CircularProgressIndicator());
-                }
-              },
-            ),
+                        ),
+                      );
+                    },
+                  )
+                : const Center(child: Text('No notes available.')),
           ),
           Container(
             padding: const EdgeInsets.all(8.0),
