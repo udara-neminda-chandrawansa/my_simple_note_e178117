@@ -10,7 +10,9 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   path: ^1.8.3
-  sqflite: ^2.3.0
+  sqflite: ^2.3.3
+  sqflite_common_ffi: ^2.3.3
+  sqflite_common_ffi_web: ^0.4.3+1
 
 
 dev_dependencies:

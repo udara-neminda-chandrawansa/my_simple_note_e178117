@@ -4,7 +4,7 @@ import 'note.dart';
 
 void main() {
   runApp(const MySimpleNoteApp());
-  print("App Started");
+  print("*** App Started ***");
 }
 
 class MySimpleNoteApp extends StatelessWidget {
@@ -30,7 +30,8 @@ class MyNotesPage extends StatefulWidget {
 }
 
 class _MyNotesPageState extends State<MyNotesPage> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _contentController = TextEditingController();
   late DatabaseHandler handler;
   List<Note> _notes = [];
 
@@ -50,21 +51,27 @@ class _MyNotesPageState extends State<MyNotesPage> {
   }
 
   void _addNote() async {
-    if (_controller.text.isNotEmpty) {
-      print("Adding note: ${_controller.text}");
+    if (_titleController.text.isNotEmpty &&
+        _contentController.text.isNotEmpty) {
+      print(
+          "Adding note: Title - ${_titleController.text}, Content - ${_contentController.text}");
       Note newNote = Note(
-        title: 'Note ${_notes.length + 1}',
-        text: _controller.text,
+        title: _titleController.text,
+        text: _contentController.text,
       );
       int result = await handler.insertNote([newNote]);
       print("Number of notes inserted: $result");
-      _controller.clear();
+      _titleController.clear();
+      _contentController.clear();
       _refreshNotes();
+    } else {
+      print("Title or content is empty. Note not added.");
     }
   }
 
   void _editNote(int index) async {
-    _controller.text = _notes[index].text;
+    _titleController.text = _notes[index].title;
+    _contentController.text = _notes[index].text;
     await _deleteNote(index);
   }
 
@@ -78,7 +85,7 @@ class _MyNotesPageState extends State<MyNotesPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('View Note'),
+          title: Text(_notes[index].title),
           content: Text(_notes[index].text),
           actions: [
             TextButton(
@@ -138,37 +145,58 @@ class _MyNotesPageState extends State<MyNotesPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    cursorColor: Colors.white,
-                    style: const TextStyle(
-                      color: Colors.black,
-                    ),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _titleController,
+                        cursorColor: Colors.white,
+                        style: const TextStyle(
+                          color: Colors.black,
+                        ),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.green),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.green),
+                          ),
+                          labelText: 'Enter note title...',
+                          labelStyle: TextStyle(color: Colors.white),
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.green),
+                      const SizedBox(height: 8.0),
+                      TextField(
+                        controller: _contentController,
+                        cursorColor: Colors.white,
+                        style: const TextStyle(
+                          color: Colors.black,
+                        ),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.green),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(color: Colors.green),
+                          ),
+                          labelText: 'Enter note content...',
+                          labelStyle: TextStyle(color: Colors.white),
+                        ),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.green),
-                      ),
-                      labelText: 'Enter your note...',
-                      labelStyle: TextStyle(color: Colors.white),
-                    ),
+                    ],
                   ),
                 ),
-                Container(
-                  color: Colors.transparent,
-                  padding: const EdgeInsets.all(4.8),
-                ),
+                const SizedBox(width: 8.0),
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.green[500],
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  padding: const EdgeInsets.all(3.8),
                   child: IconButton(
                     onPressed: _addNote,
                     icon: const Icon(Icons.add_circle_outline_sharp),
