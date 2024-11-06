@@ -80,23 +80,12 @@ class _MyNotesPageState extends State<MyNotesPage> {
     _refreshNotes();
   }
 
-  void _viewNoteDetails(int index) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(_notes[index].title),
-          content: Text(_notes[index].text),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+  void _viewNoteDetails(Note note) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NoteDetailPage(note: note),
+      ),
     );
   }
 
@@ -118,8 +107,12 @@ class _MyNotesPageState extends State<MyNotesPage> {
                       return Card(
                         child: ListTile(
                           title: Text(_notes[index].title),
-                          subtitle: Text(_notes[index].text),
-                          onTap: () => _viewNoteDetails(index),
+                          subtitle: Text(
+                            _notes[index].text.length > 50
+                                ? '${_notes[index].text.substring(0, 50)}...'
+                                : _notes[index].text,
+                          ),
+                          onTap: () => _viewNoteDetails(_notes[index]),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -171,6 +164,7 @@ class _MyNotesPageState extends State<MyNotesPage> {
                       TextField(
                         controller: _contentController,
                         cursorColor: Colors.white,
+                        maxLines: 4, // number of lines
                         style: const TextStyle(
                           color: Colors.black,
                         ),
@@ -207,6 +201,42 @@ class _MyNotesPageState extends State<MyNotesPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class NoteDetailPage extends StatelessWidget {
+  final Note note;
+
+  const NoteDetailPage({Key? key, required this.note}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(note.title),
+        backgroundColor: Colors.green[300],
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16.0),
+            Text(
+              note.text,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
       ),
     );
   }
