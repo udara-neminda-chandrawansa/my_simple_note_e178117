@@ -4,7 +4,6 @@ import 'note.dart';
 
 void main() {
   runApp(const MySimpleNoteApp());
-  print("*** App Started ***");
 }
 
 class MySimpleNoteApp extends StatelessWidget {
@@ -30,58 +29,69 @@ class MyNotesPage extends StatefulWidget {
 }
 
 class _MyNotesPageState extends State<MyNotesPage> {
+  // text fields
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+  // database handler obj
   late DatabaseHandler handler;
+  // notes list
   List<Note> _notes = [];
 
   @override
   void initState() {
     super.initState();
+    // initiate database handler obj
     handler = DatabaseHandler();
+    // load all notes to home
     _refreshNotes();
   }
 
+  // Method to load/refresh all notes
   Future<void> _refreshNotes() async {
+    // get all notes from db
     final notes = await handler.retrieveNotes();
-    print("Number of notes fetched: ${notes.length}");
-    setState(() {
+    setState(() { // put notes in home
       _notes = notes;
     });
   }
 
+  // Method to add notes to the database
   void _addNote() async {
-    if (_titleController.text.isNotEmpty &&
-        _contentController.text.isNotEmpty) {
-      print(
-          "Adding note: Title - ${_titleController.text}, Content - ${_contentController.text}");
+    // Validate user input in title and content text fields
+    if (_titleController.text.isNotEmpty && _contentController.text.isNotEmpty) {
+      // create a new note object
       Note newNote = Note(
         title: _titleController.text,
         text: _contentController.text,
       );
-      int result = await handler.insertNote([newNote]);
-      print("Number of notes inserted: $result");
+      // insert the new note object to database using `insertNote` method
+      await handler.insertNote([newNote]);
+      // clear input fields
       _titleController.clear();
       _contentController.clear();
+      // refresh note list
       _refreshNotes();
-    } else {
-      print("Title or content is empty. Note not added.");
     }
   }
 
+  // Method to edit notes
   void _editNote(int index) async {
     _titleController.text = _notes[index].title;
     _contentController.text = _notes[index].text;
     await _deleteNote(index);
   }
 
+  // Method to delete notes
   Future<void> _deleteNote(int index) async {
+    // provide note id of the note that needs deleting to the `deleteNote` method
     await handler.deleteNote(_notes[index].id!);
+    // refresh note list
     _refreshNotes();
   }
 
+  // Method to read a note
   void _viewNoteDetails(Note note) {
-    Navigator.push(
+    Navigator.push( // open a new screen
       context,
       MaterialPageRoute(
         builder: (context) => NoteDetailPage(note: note),
@@ -99,30 +109,30 @@ class _MyNotesPageState extends State<MyNotesPage> {
       ),
       body: Column(
         children: [
-          Expanded(
+          Expanded( // in this expanded section, display notes from `_notes` list
             child: _notes.isNotEmpty
-                ? ListView.builder(
+                ? ListView.builder( // use a list view to display notes
                     itemCount: _notes.length,
                     itemBuilder: (BuildContext context, int index) {
-                      return Card(
+                      return Card( // use a card to display a single note
                         child: ListTile(
-                          title: Text(_notes[index].title),
-                          subtitle: Text(
-                            _notes[index].text.length > 50
-                                ? '${_notes[index].text.substring(0, 50)}...'
-                                : _notes[index].text,
+                          title: Text(_notes[index].title), // set note title as title
+                          subtitle: Text( // set note text as subtitle
+                            _notes[index].text.length > 50 // if note text length > 50
+                                ? '${_notes[index].text.substring(0, 50)}...' // use only first 50 characters
+                                : _notes[index].text, // else show all text
                           ),
-                          onTap: () => _viewNoteDetails(_notes[index]),
-                          trailing: Row(
+                          onTap: () => _viewNoteDetails(_notes[index]), // open `_viewNoteDetails` to display note
+                          trailing: Row( // controls to delete & update
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
+                              IconButton( // edit btn
                                 icon: const Icon(Icons.edit),
-                                onPressed: () => _editNote(index),
+                                onPressed: () => _editNote(index), // call `_editNote` method to edit note
                               ),
-                              IconButton(
+                              IconButton( // update btn
                                 icon: const Icon(Icons.delete),
-                                onPressed: () => _deleteNote(index),
+                                onPressed: () => _deleteNote(index), // call `_deleteNote` method to delete note
                               ),
                             ],
                           ),
@@ -130,7 +140,7 @@ class _MyNotesPageState extends State<MyNotesPage> {
                       );
                     },
                   )
-                : const Center(child: Text('No notes available.')),
+                : const Center(child: Text('No notes available.')), // if `_notes` empty, display this
           ),
           Container(
             padding: const EdgeInsets.all(8.0),
@@ -140,7 +150,7 @@ class _MyNotesPageState extends State<MyNotesPage> {
                 Expanded(
                   child: Column(
                     children: [
-                      TextField(
+                      TextField( // note title text field
                         controller: _titleController,
                         cursorColor: Colors.white,
                         style: const TextStyle(
@@ -161,10 +171,10 @@ class _MyNotesPageState extends State<MyNotesPage> {
                         ),
                       ),
                       const SizedBox(height: 8.0),
-                      TextField(
+                      TextField( // note content text area
                         controller: _contentController,
                         cursorColor: Colors.white,
-                        maxLines: 4, // number of lines
+                        maxLines: 4,
                         style: const TextStyle(
                           color: Colors.black,
                         ),
@@ -185,13 +195,13 @@ class _MyNotesPageState extends State<MyNotesPage> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8.0),
-                Container(
+                const SizedBox(width: 8.0), // space between text fields and add button
+                Container( // container for add button
                   decoration: BoxDecoration(
                     color: Colors.green[500],
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  child: IconButton(
+                  child: IconButton( // add button
                     onPressed: _addNote,
                     icon: const Icon(Icons.add_circle_outline_sharp),
                     color: Colors.white,
@@ -206,32 +216,33 @@ class _MyNotesPageState extends State<MyNotesPage> {
   }
 }
 
+// this screen is used to display a single note each time opened
 class NoteDetailPage extends StatelessWidget {
-  final Note note;
-
-  const NoteDetailPage({Key? key, required this.note}) : super(key: key);
+  final Note note; // the note object that is displayed
+  // this page requires the above note object
+  const NoteDetailPage({super.key, required this.note});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(note.title),
+        title: Text(note.title), // set note title as app bar title
         backgroundColor: Colors.green[300],
         foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back), // go back button
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context); // go back to home
           },
         ),
       ),
-      body: SingleChildScrollView(
+      body: SingleChildScrollView( // scrollable container
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16.0),
-            Text(
+            Text( // note content
               note.text,
               style: const TextStyle(fontSize: 16),
             ),

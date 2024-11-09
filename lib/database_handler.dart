@@ -21,12 +21,12 @@ class DatabaseHandler {
       databaseFactory = databaseFactoryFfiWeb;
     }
 
-    String path;
+    String path; // initiate database path var
     if (kIsWeb) {
-      // Web-specific database path
+      // Web-specific database path (for web platforms, this is the db path)
       path = 'notes_db.db';
     } else {
-      // Mobile/desktop path
+      // Mobile/desktop path (for mobile/desktop platforms, this is the db path)
       path = await getDatabasesPath();
       path = join(path, 'notes_db.db');
     }
@@ -39,50 +39,39 @@ class DatabaseHandler {
         await database.execute(
           "CREATE TABLE IF NOT EXISTS note(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, text TEXT NOT NULL)",
         );
-        print("Database and table 'note' created.");
       },
     );
-
-    print("Database path: $path");
-    print("Database opened successfully");
     return db;
   }
 
-  Future<int> insertNote(List<Note> notes) async {
+  // Method to insert multiple notes into the database
+  Future<void> insertNote(List<Note> notes) async {
     final Database db = await database;
-    int result = 0;
 
     await db.transaction((txn) async {
       for (var note in notes) {
-        int rowId = await txn.insert('note', note.toMap());
-        print("Inserted note with ID: $rowId");
-        result += rowId;
+        await txn.insert('note', note.toMap()); // Insert each note
       }
     });
-    return result;
   }
 
+  // Method to retrieve all notes from the database
   Future<List<Note>> retrieveNotes() async {
     final db = await database;
-    final List<Map<String, Object?>> queryResult = await db.query('note');
-    print("Retrieved notes from database: ${queryResult.length}");
-    return queryResult.map((e) => Note.fromMap(e)).toList();
+    final List<Map<String, Object?>> queryResult =
+        await db.query('note'); // Query all notes
+    return queryResult
+        .map((e) => Note.fromMap(e))
+        .toList(); // Convert map to List<Note>
   }
 
+  // Method to delete a note by ID
   Future<void> deleteNote(int id) async {
     final db = await database;
     await db.delete(
       'note',
-      where: "id = ?",
-      whereArgs: [id],
+      where: "id = ?", // Specify note ID to delete
+      whereArgs: [id], // Provide the ID as an argument
     );
-    print("Deleted note with ID: $id");
-  }
-
-  Future<void> closeDB() async {
-    final db = await database;
-    await db.close();
-    _database = null; // Reset the database instance
-    print("Database closed");
   }
 }
